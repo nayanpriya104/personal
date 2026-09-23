@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Simulator — Learn Retrieval Augmented Generation</title>
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --text:#172033;
+    --muted:#6b7280;
+    --line:#e6e8ef;
+    --accent:#635bff;
+    --accent2:#8b5cf6;
+    --success:#0f9d72;
+    --warning:#d97706;
+    --danger:#dc4c64;
+    --shadow:0 16px 50px rgba(23,32,51,.08);
+    --radius:20px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(99,91,255,.10), transparent 28%),
+      radial-gradient(circle at 90% 10%, rgba(139,92,246,.09), transparent 25%),
+      var(--bg);
+    color:var(--text);
+  }
+  .app{max-width:1450px;margin:auto;padding:28px}
+  header{
+    display:flex;justify-content:space-between;gap:20px;align-items:center;
+    margin-bottom:24px;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{
+    width:48px;height:48px;border-radius:15px;
+    display:grid;place-items:center;color:white;font-weight:900;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 10px 25px rgba(99,91,255,.28);
+  }
+  h1{font-size:25px;margin:0 0 3px;letter-spacing:-.6px}
+  .subtitle{margin:0;color:var(--muted);font-size:13px}
+  .badge{
+    border:1px solid #dddafc;background:#f1efff;color:#554bd7;
+    padding:9px 13px;border-radius:999px;font-size:12px;font-weight:700;
+  }
+  .card{
+    background:rgba(255,255,255,.9);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+  }
+  .controls{padding:20px;margin-bottom:20px}
+  .query-row{display:flex;gap:12px}
+  input{
+    flex:1;border:1px solid #dfe2eb;border-radius:13px;padding:14px 16px;
+    font-size:15px;outline:none;background:white;color:var(--text);
+  }
+  input:focus{border-color:#9c97ff;box-shadow:0 0 0 4px rgba(99,91,255,.10)}
+  button{
+    border:0;border-radius:13px;padding:0 18px;font-weight:800;cursor:pointer;
+    font-size:13px;transition:.18s transform,.18s box-shadow,.18s opacity;
+  }
+  button:hover{transform:translateY(-1px)}
+  .primary{color:white;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 9px 20px rgba(99,91,255,.22)}
+  .secondary{background:#f0f1f6;color:#3d465a}
+  .examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .example{
+    padding:7px 10px;border-radius:999px;border:1px solid var(--line);
+    background:#fafbfc;color:#626b7d;font-size:11px;cursor:pointer;
+  }
+  .pipeline{padding:22px;margin-bottom:20px;overflow:hidden}
+  .pipeline-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+  .pipeline-title h2{font-size:16px;margin:0}
+  .hint{font-size:11px;color:var(--muted)}
+  .steps{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:center}
+  .step{position:relative;text-align:center;min-width:0}
+  .step:not(:last-child)::after{
+    content:"";position:absolute;right:-13px;top:22px;width:18px;height:2px;background:#dfe2eb;
+  }
+  .step.active:not(:last-child)::after{background:linear-gradient(90deg,var(--accent),#c9c6ff)}
+  .circle{
+    width:46px;height:46px;border-radius:14px;margin:auto;display:grid;place-items:center;
+    background:#f0f1f6;color:#7b8290;font-weight:900;font-size:13px;
+    border:1px solid #e3e5ec;transition:.25s;
+  }
+  .step.active .circle{background:#eeedff;color:var(--accent);border-color:#d8d5ff;box-shadow:0 7px 20px rgba(99,91,255,.13)}
+  .step.done .circle{background:#e9f8f3;color:var(--success);border-color:#c8eee1}
+  .step-label{font-size:10px;font-weight:800;margin-top:8px;white-space:nowrap}
+  .step-sub{font-size:9px;color:var(--muted);margin-top:3px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .panel{padding:20px;min-height:300px}
+  .panel.full{grid-column:1/-1}
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+  .panel-head h3{font-size:15px;margin:0 0 4px}
+  .panel-head p{font-size:11px;color:var(--muted);margin:0;line-height:1.5}
+  .pill{font-size:10px;font-weight:800;padding:6px 9px;border-radius:999px;background:#f1f2f6;color:#677084}
+  .pill.blue{background:#eeedff;color:#554bd7}
+  .pill.green{background:#e9f8f3;color:#0b8060}
+  .docs{display:grid;gap:9px}
+  .doc{
+    padding:12px;border:1px solid var(--line);border-radius:13px;background:#fbfbfd;
+  }
+  .doc-top{display:flex;justify-content:space-between;gap:8px;margin-bottom:7px}
+  .doc-title{font-weight:800;font-size:11px}
+  .doc-score{font-size:10px;color:var(--success);font-weight:800}
+  .doc p{font-size:11px;line-height:1.5;color:#5e6675;margin:0}
+  .chunk-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+  .chunk{
+    border:1px solid var(--line);border-radius:13px;padding:11px;background:#fcfcfd;
+    transition:.2s;
+  }
+  .chunk.selected{border-color:#aaa5ff;background:#f5f4ff;box-shadow:0 7px 18px rgba(99,91,255,.08)}
+  .chunk-id{font-size:9px;color:var(--accent);font-weight:900;margin-bottom:6px}
+  .chunk-text{font-size:10px;line-height:1.45;color:#596273}
+  .bar{height:6px;border-radius:99px;background:#eceef4;overflow:hidden;margin-top:9px}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 1s}
+  .vector{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;
+    padding:12px;border-radius:12px;background:#151827;color:#cfd3e6;
+    overflow:auto;white-space:nowrap;
+  }
+  .prompt{
+    background:#151827;color:#d9dcf0;border-radius:14px;padding:15px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;line-height:1.65;
+    min-height:170px;white-space:pre-wrap;
+  }
+  .prompt .key{color:#a9a2ff}
+  .answer{
+    border:1px solid #dfe1ea;border-radius:15px;padding:17px;background:#fff;
+    line-height:1.65;font-size:13px;
+  }
+  .answer strong{color:#5148d1}
+  .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .metric{background:#f8f9fb;border:1px solid var(--line);border-radius:13px;padding:13px}
+  .metric b{display:block;font-size:19px;margin-bottom:3px}
+  .metric span{font-size:10px;color:var(--muted)}
+  .explain{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px
+  }
+  .explain-card{padding:14px;border-radius:14px;background:#fafbfc;border:1px solid var(--line)}
+  .explain-card b{font-size:11px;display:block;margin-bottom:5px}
+  .explain-card p{font-size:10px;line-height:1.5;color:var(--muted);margin:0}
+  .footer-note{text-align:center;color:#858b98;font-size:10px;margin:20px 0 4px}
+  .hidden{display:none}
+  @media(max-width:900px){
+    .grid{grid-template-columns:1fr}
+    .steps{grid-template-columns:repeat(4,1fr);row-gap:22px}
+    .step:nth-child(4)::after{display:none}
+    .panel.full{grid-column:auto}
+  }
+  @media(max-width:600px){
+    .app{padding:14px}
+    header{align-items:flex-start}.badge{display:none}
+    .query-row{flex-direction:column}.query-row button{height:45px}
+    .steps{grid-template-columns:repeat(2,1fr)}
+    .step::after{display:none!important}
+    .chunk-grid,.metric-grid,.explain{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">R</div>
+      <div>
+        <h1>RAG Simulator</h1>
+        <p class="subtitle">Visually learn Retrieval-Augmented Generation — from documents to grounded answers.</p>
+      </div>
+    </div>
+    <div class="badge">LEARNING MODE · NO REAL API</div>
+  </header>
+
+  <section class="card controls">
+    <div class="query-row">
+      <input id="query" value="What is our refund policy?" aria-label="User query">
+      <button class="primary" id="runBtn">▶ Run RAG Pipeline</button>
+      <button class="secondary" id="resetBtn">Reset</button>
+    </div>
+    <div class="examples">
+      <span class="example">What is our refund policy?</span>
+      <span class="example">How long is the support SLA?</span>
+      <span class="example">Do we offer annual plans?</span>
+    </div>
+  </section>
+
+  <section class="card pipeline">
+    <div class="pipeline-title">
+      <h2>RAG Pipeline</h2>
+      <span class="hint" id="status">Ready — run the simulation</span>
+    </div>
+    <div class="steps">
+      <div class="step" data-step="1"><div class="circle">01</div><div class="step-label">Data</div><div class="step-sub">Sources</div></div>
+      <div class="step" data-step="2"><div class="circle">02</div><div class="step-label">Chunk</div><div class="step-sub">Split text</div></div>
+      <div class="step" data-step="3"><div class="circle">03</div><div class="step-label">Embed</div><div class="step-sub">Vectors</div></div>
+      <div class="step" data-step="4"><div class="circle">04</div><div class="step-label">Retrieve</div><div class="step-sub">Top-K</div></div>
+      <div class="step" data-step="5"><div class="circle">05</div><div class="step-label">Augment</div><div class="step-sub">Context</div></div>
+      <div class="step" data-step="6"><div class="circle">06</div><div class="step-label">Generate</div><div class="step-sub">LLM</div></div>
+      <div class="step" data-step="7"><div class="circle">07</div><div class="step-label">Answer</div><div class="step-sub">Grounded</div></div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card panel">
+      <div class="panel-head">
+        <div><h3>1. Source Data</h3><p>Imagine these are company documents in your knowledge base.</p></div>
+        <span class="pill">3 DOCUMENTS</span>
+      </div>
+      <div class="docs">
+        <div class="doc"><div class="doc-top"><span class="doc-title">refund-policy.md</span><span>📄</span></div><p>Customers can request a refund within 30 days of purchase. Refunds are processed to the original payment method.</p></div>
+        <div class="doc"><div class="doc-top"><span class="doc-title">support-sla.md</span><span>📄</span></div><p>Priority P1 incidents receive an initial response within 1 hour. P2 tickets receive a response within 4 business hours.</p></div>
+        <div class="doc"><div class="doc-top"><span class="doc-title">pricing.md</span><span>📄</span></div><p>Monthly and annual plans are available. Annual billing includes a 15% discount compared with monthly billing.</p></div>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <div class="panel-head">
+        <div><h3>2. Chunking</h3><p>Documents are split into smaller pieces so retrieval can find precise information.</p></div>
+        <span class="pill blue">CHUNKS</span>
+      </div>
+      <div class="chunk-grid" id="chunks">
+        <div class="chunk" data-topic="refund"><div class="chunk-id">CHUNK_01</div><div class="chunk-text">Customers can request a refund within 30 days of purchase.</div><div class="bar"><i></i></div></div>
+        <div class="chunk" data-topic="refund"><div class="chunk-id">CHUNK_02</div><div class="chunk-text">Refunds are processed to the original payment method.</div><div class="bar"><i></i></div></div>
+        <div class="chunk" data-topic="sla"><div class="chunk-id">CHUNK_03</div><div class="chunk-text">P1 incidents receive an initial response within 1 hour.</div><div class="bar"><i></i></div></div>
+        <div class="chunk" data-topic="sla"><div class="chunk-id">CHUNK_04</div><div class="chunk-text">P2 tickets receive a response within 4 business hours.</div><div class="bar"><i></i></div></div>
+        <div class="chunk" data-topic="pricing"><div class="chunk-id">CHUNK_05</div><div class="chunk-text">Monthly and annual plans are available.</div><div class="bar"><i></i></div></div>
+        <div class="chunk" data-topic="pricing"><div class="chunk-id">CHUNK_06</div><div class="chunk-text">Annual billing includes a 15% discount.</div><div class="bar"><i></i></div></div>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <div class="panel-head">
+        <div><h3>3. Embeddings</h3><p>Each chunk becomes a numerical representation capturing semantic meaning.</p></div>
+        <span class="pill">VECTOR DB</span>
+      </div>
+      <div class="vector" id="vectorBox">CHUNK_01 → [0.12, -0.44, 0.81, 0.27, ...]
+CHUNK_02 → [-0.08, 0.66, 0.14, 0.51, ...]
+CHUNK_03 → [0.73, -0.21, 0.05, -0.38, ...]
+CHUNK_04 → [0.69, -0.17, 0.09, -0.31, ...]
+CHUNK_05 → [-0.32, 0.19, 0.72, 0.11, ...]
+CHUNK_06 → [-0.29, 0.24, 0.68, 0.16, ...]</div>
+      <div class="explain">
+        <div class="explain-card"><b>Embedding model</b><p>Converts text into vectors. Similar meanings tend to have nearby vectors.</p></div>
+        <div class="explain-card"><b>Vector database</b><p>Stores vectors and makes similarity search fast.</p></div>
+        <div class="explain-card"><b>Important</b><p>The vector itself is not human-readable text. It represents semantic features.</p></div>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <div class="panel-head">
+        <div><h3>4. Retrieval</h3><p>The query is embedded and compared against stored vectors to find relevant chunks.</p></div>
+        <span class="pill green" id="retrievalPill">TOP-K = 2</span>
+      </div>
+      <div id="retrievalArea">
+        <div class="answer" style="background:#fafbfc;color:#7b8290">
+          Run the pipeline to see semantic retrieval scores.
+        </div>
+      </div>
+      <div class="metric-grid" style="margin-top:12px">
+        <div class="metric"><b id="metric1">—</b><span>Query embedding</span></div>
+        <div class="metric"><b id="metric2">—</b><span>Retrieved chunks</span></div>
+        <div class="metric"><b id="metric3">—</b><span>Similarity method</span></div>
+      </div>
+    </section>
+
+    <section class="card panel full">
+      <div class="panel-head">
+        <div><h3>5. Augmented Prompt</h3><p>This is the key RAG handoff: retrieved context is placed into the LLM's prompt.</p></div>
+        <span class="pill blue">CONTEXT + QUERY</span>
+      </div>
+      <div class="prompt" id="promptBox">SYSTEM:
+You are a helpful assistant. Answer using the provided context.
+
+CONTEXT:
+[Retrieved chunks will appear here]
+
+USER QUERY:
+[Your query]
+
+INSTRUCTION:
+Use the context to answer the query. If the context does not contain the answer, say you don't have enough information.</div>
+    </section>
+
+    <section class="card panel">
+      <div class="panel-head">
+        <div><h3>6. LLM Generation</h3><p>The LLM uses the retrieved context to produce a grounded response.</p></div>
+        <span class="pill">INFERENCE</span>
+      </div>
+      <div class="answer" id="answerBox">
+        <span style="color:#858b98">The generated answer will appear here.</span>
+      </div>
+      <div class="explain">
+        <div class="explain-card"><b>RAG ≠ training</b><p>The LLM is not retrained with these documents during this request.</p></div>
+        <div class="explain-card"><b>Grounding</b><p>The retrieved context gives the model information to reference while answering.</p></div>
+        <div class="explain-card"><b>Hallucination risk</b><p>Better retrieval and clear instructions can reduce unsupported answers, but don't guarantee zero hallucinations.</p></div>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <div class="panel-head">
+        <div><h3>7. Final Answer</h3><p>What the user ultimately sees.</p></div>
+        <span class="pill green">GROUNDED</span>
+      </div>
+      <div class="answer" id="finalBox">
+        <span style="color:#858b98">Run the simulation to generate the final response.</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer-note">
+    Educational simulator only — embeddings, similarity scores and LLM output are simulated locally. No API key or external service is used.
+  </div>
+</div>
+
+<script>
+const queryEl = document.getElementById('query');
+const runBtn = document.getElementById('runBtn');
+const resetBtn = document.getElementById('resetBtn');
+const statusEl = document.getElementById('status');
+
+const chunks = [
+  {id:'CHUNK_01', topic:'refund', text:'Customers can request a refund within 30 days of purchase.'},
+  {id:'CHUNK_02', topic:'refund', text:'Refunds are processed to the original payment method.'},
+  {id:'CHUNK_03', topic:'sla', text:'P1 incidents receive an initial response within 1 hour.'},
+  {id:'CHUNK_04', topic:'sla', text:'P2 tickets receive a response within 4 business hours.'},
+  {id:'CHUNK_05', topic:'pricing', text:'Monthly and annual plans are available.'},
+  {id:'CHUNK_06', topic:'pricing', text:'Annual billing includes a 15% discount.'}
+];
+
+const topicWords = {
+  refund:['refund','return','money','purchase','reimbursement','cancel'],
+  sla:['sla','support','response','ticket','incident','priority','p1','p2'],
+  pricing:['price','pricing','plan','annual','monthly','discount','billing','cost']
+};
+
+function classifyQuery(q){
+  const text = q.toLowerCase();
+  const scores = {};
+  for(const topic of Object.keys(topicWords)){
+    scores[topic] = topicWords[topic].reduce((n,w)=>n+(text.includes(w)?1:0),0);
+  }
+  return Object.entries(scores).sort((a,b)=>b[1]-a[1])[0][0];
+}
+
+function setStep(n, state='active'){
+  document.querySelectorAll('.step').forEach((s,i)=>{
+    s.classList.remove('active','done');
+    if(i+1<n) s.classList.add('done');
+    if(i+1===n) s.classList.add(state);
+  });
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function similarityFor(chunk, topic, index){
+  let base = chunk.topic===topic ? (0.86 - index*0.07) : (0.31 + index*0.035);
+  return Math.min(.97, Math.max(.22, base));
+}
+
+async function runPipeline(){
+  const q = queryEl.value.trim() || 'What is our refund policy?';
+  runBtn.disabled = true;
+  runBtn.style.opacity = '.65';
+  document.getElementById('answerBox').innerHTML='<span style="color:#858b98">Generating…</span>';
+  document.getElementById('finalBox').innerHTML='<span style="color:#858b98">Generating…</span>';
+
+  // Reset visual state
+  document.querySelectorAll('.chunk').forEach(c=>{
+    c.classList.remove('selected');
+    const bar=c.querySelector('i'); if(bar) bar.style.width='0';
+  });
+
+  setStep(1);
+  statusEl.textContent='Reading source documents…';
+  await sleep(550);
+
+  setStep(2);
+  statusEl.textContent='Splitting documents into chunks…';
+  await sleep(650);
+
+  setStep(3);
+  statusEl.textContent='Creating / storing vector embeddings…';
+  await sleep(750);
+
+  setStep(4);
+  statusEl.textContent='Embedding query and searching for top-K chunks…';
+
+  const topic = classifyQuery(q);
+  const ranked = chunks.map((c,i)=>({
+    ...c,
+    score: similarityFor(c, topic, i)
+  })).sort((a,b)=>b.score-a.score).slice(0,2);
+
+  await sleep(900);
+
+  document.getElementById('metric1').textContent='384-D';
+  document.getElementById('metric2').textContent='2';
+  document.getElementById('metric3').textContent='Cosine';
+
+  const retrievalArea = document.getElementById('retrievalArea');
+  retrievalArea.innerHTML = ranked.map((r,i)=>`
+    <div class="doc" style="margin-bottom:9px">
+      <div class="doc-top">
+        <span class="doc-title">${r.id} ${i===0?'· #1':''}</span>
+        <span class="doc-score">${(r.score*100).toFixed(1)}% similarity</span>
+      </div>
+      <p>${r.text}</p>
+      <div class="bar"><i style="width:${r.score*100}%"></i></div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.chunk').forEach(el=>{
+    const found=ranked.find(r=>r.id===el.querySelector('.chunk-id').textContent);
+    if(found){
+      el.classList.add('selected');
+      el.querySelector('i').style.width=(found.score*100)+'%';
+    }
+  });
+
+  setStep(5);
+  statusEl.textContent='Injecting retrieved chunks into the LLM context…';
+  await sleep(700);
+
+  const context = ranked.map(r=>`[${r.id}]\n${r.text}`).join('\n\n');
+  document.getElementById('promptBox').innerHTML =
+`<span class="key">SYSTEM:</span>
+You are a helpful assistant. Answer using the provided context.
+
+<span class="key">CONTEXT:</span>
+${escapeHtml(context)}
+
+<span class="key">USER QUERY:</span>
+${escapeHtml(q)}
+
+<span class="key">INSTRUCTION:</span>
+Use the context to answer the query. If the context does not contain the answer, say you don't have enough information.`;
+
+  setStep(6);
+  statusEl.textContent='LLM is generating a response from the augmented context…';
+  await sleep(950);
+
+  let answer = buildAnswer(topic, q, ranked);
+
+  document.getElementById('answerBox').innerHTML =
+    `<strong>LLM output</strong><br><br>${answer}`;
+
+  setStep(7);
+  statusEl.textContent='Pipeline complete — answer grounded in retrieved context.';
+  await sleep(300);
+
+  document.getElementById('finalBox').innerHTML =
+    `<strong>Answer</strong><br><br>${answer}<br><br><small style="color:#7a8190">Sources: ${ranked.map(r=>r.id).join(', ')}</small>`;
+
+  runBtn.disabled=false;
+  runBtn.style.opacity='1';
+}
+
+function buildAnswer(topic,q,ranked){
+  if(topic==='refund'){
+    return 'Customers can request a <strong>refund within 30 days of purchase</strong>. Refunds are processed to the <strong>original payment method</strong>.';
+  }
+  if(topic==='sla'){
+    return 'For support, <strong>P1 incidents receive an initial response within 1 hour</strong>, while <strong>P2 tickets receive a response within 4 business hours</strong>.';
+  }
+  if(topic==='pricing'){
+    return 'The company offers <strong>monthly and annual plans</strong>. Annual billing includes a <strong>15% discount</strong> compared with monthly billing.';
+  }
+  return 'I don’t have enough information in the retrieved context to answer that question reliably.';
+}
+
+function escapeHtml(str){
+  return str.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+function reset(){
+  queryEl.value='What is our refund policy?';
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active','done'));
+  document.querySelectorAll('.chunk').forEach(c=>{
+    c.classList.remove('selected');
+    c.querySelector('i').style.width='0';
+  });
+  document.getElementById('retrievalArea').innerHTML='<div class="answer" style="background:#fafbfc;color:#7b8290">Run the pipeline to see semantic retrieval scores.</div>';
+  document.getElementById('metric1').textContent='—';
+  document.getElementById('metric2').textContent='—';
+  document.getElementById('metric3').textContent='—';
+  document.getElementById('promptBox').innerHTML=`<span class="key">SYSTEM:</span>
+You are a helpful assistant. Answer using the provided context.
+
+<span class="key">CONTEXT:</span>
+[Retrieved chunks will appear here]
+
+<span class="key">USER QUERY:</span>
+[Your query]
+
+<span class="key">INSTRUCTION:</span>
+Use the context to answer the query. If the context does not contain the answer, say you don't have enough information.`;
+  document.getElementById('answerBox').innerHTML='<span style="color:#858b98">The generated answer will appear here.</span>';
+  document.getElementById('finalBox').innerHTML='<span style="color:#858b98">Run the simulation to generate the final response.</span>';
+  statusEl.textContent='Ready — run the simulation';
+}
+
+document.querySelectorAll('.example').forEach(el=>{
+  el.addEventListener('click',()=>{queryEl.value=el.textContent;});
+});
+runBtn.addEventListener('click',runPipeline);
+resetBtn.addEventListener('click',reset);
+queryEl.addEventListener('keydown',e=>{if(e.key==='Enter')runPipeline();});
+</script>
+</body>
+</html>
