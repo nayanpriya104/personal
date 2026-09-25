@@ -1,0 +1,131 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>PRD: Uber Office Commute</h1>
+<p><strong>Status:</strong> MVP prototype · <strong>Owner:</strong> Product · <strong>Last updated:</strong> Sep 25, 2026</p>
+<hr>
+<h2>1. Problem</h2>
+<p>Working professionals who rely on Uber for their morning office commute struggle to get a predictable ride during peak hours. They spend extra time rebooking or waiting, and risk reaching work late. Today's booking experience treats every ride as a one-off decision, even for people who take the exact same trip five days a week.</p>
+<p><strong>Persona — Rahul, 29, Gurgaon</strong>
+IT professional, office Mon–Fri, starts 9:30 AM. Books Uber daily for the same route, hits high morning demand, sometimes rebooks mid-search, occasionally works from home or needs to shift his departure time — but has no easy way to set that up once.</p>
+<h2>2. Hypothesis</h2>
+<p>If frequent office commuters can configure their recurring work commute once and Uber automatically manages their rides, then we expect to reduce daily booking effort and make office commuting more predictable.</p>
+<h2>3. Solution</h2>
+<p><strong>Uber Office Commute</strong>: configure your commute once — home, office, days, times — and Uber generates and manages the recurring rides. The user only steps in to change or skip a specific day.</p>
+<p>Core mechanic: <strong>Setup once → auto-generated rides → exception-based management</strong> (change/skip), rather than daily manual booking.</p>
+<h2>4. Goals &amp; non-goals</h2>
+<p><strong>In scope for MVP</strong></p>
+<ul>
+<li>Recurring commute setup (locations, days, times, one-way/two-way)</li>
+<li>Auto-generated upcoming rides list/dashboard</li>
+<li>Change next ride's time; skip a ride</li>
+<li>Three plan tiers (Basic / Advance / Pro) to test willingness-to-pay for flexibility and reliability</li>
+<li>Basic commute-value stats (manual bookings avoided, etc.)</li>
+</ul>
+<p><strong>Out of scope for MVP</strong></p>
+<ul>
+<li>Real payment processing, real Uber API/driver matching, real GPS tracking</li>
+<li>Any guarantee of driver availability or arrival time</li>
+<li>AI-driven scheduling or advanced personalization</li>
+</ul>
+<h2>5. User flow</h2>
+<pre><code>Home → Choose Plan → Set Home + Office → Select Office Days
+→ Set Morning + Return Time → Choose Two-Way → Review → Confirm
+→ Commute Dashboard → select a ride → Change Time | Skip Ride | Cancel
+</code></pre>
+<h2>6. Plans</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Basic — Convenience</th>
+<th>Advance — Flexibility</th>
+<th>Pro — Reliability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Positioning</td>
+<td>Simple recurring commute</td>
+<td>More flexibility for hybrid work</td>
+<td>Extra commute protection</td>
+</tr>
+<tr>
+<td>Core</td>
+<td>Recurring rides, up to 7 days ahead, morning + return, normal fare</td>
+<td>Everything in Basic + flexible days, easier rescheduling, flexible return time, commute calendar</td>
+<td>Everything in Advance + reach-by-time, priority handling, backup ride protection, priority support</td>
+</tr>
+<tr>
+<td>Change window</td>
+<td>1 day before</td>
+<td>More flexible</td>
+<td>More flexible</td>
+</tr>
+<tr>
+<td>Note</td>
+<td>—</td>
+<td>—</td>
+<td>Reliability features are <strong>concept / simulated in MVP</strong> — no guaranteed driver or arrival time</td>
+</tr>
+</tbody>
+</table>
+<h2>7. Data model</h2>
+<pre><code class="language-js">commutePlan: {
+  plan: &#34;basic&#34;,
+  homeLocation: &#34;Sector 56, Gurgaon&#34;,
+  officeLocation: &#34;Cyber City, Gurgaon&#34;,
+  officeDays: [&#34;Mon&#34;,&#34;Tue&#34;,&#34;Thu&#34;,&#34;Fri&#34;],
+  morningTime: &#34;08:30&#34;,
+  returnTime: &#34;18:30&#34;,
+  twoWay: true
+}
+
+ride: {
+  date: &#34;Tomorrow&#34;,
+  direction: &#34;Home → Office&#34;,
+  time: &#34;08:30&#34;,
+  status: &#34;Scheduled&#34; // Scheduled | Changed | Skipped | Completed
+}
+</code></pre>
+<h2>8. Error &amp; edge states</h2>
+<ul>
+<li>Missing home location → &quot;Please add your home location.&quot;</li>
+<li>Missing office location → &quot;Please add your office location.&quot;</li>
+<li>No office days selected → &quot;Select at least one office day.&quot;</li>
+<li>Missing morning time → &quot;Please select your morning pickup time.&quot;</li>
+<li>On confirm: &quot;Your recurring commute is being checked for availability.&quot; → &quot;Commute schedule confirmed.&quot; (never implies real driver availability was checked)</li>
+</ul>
+<h2>9. Metrics</h2>
+<p><strong>Primary</strong></p>
+<ol>
+<li>Office Commute activation rate</li>
+<li>Setup completion rate</li>
+<li>Weekly active office commuters</li>
+<li>Scheduled rides per commuter</li>
+<li>% of rides changed/skipped</li>
+<li>Reduction in manual booking actions</li>
+<li>Ride cancellation/rebooking rate</li>
+<li>Repeat usage after 4 weeks</li>
+</ol>
+<p><strong>Guardrails</strong>
+Cancellation rate · failed booking rate · customer complaints · driver acceptance rate · average fare · support contacts</p>
+<p><em>No target numbers are asserted here — these are metrics to validate against, not claimed results.</em></p>
+<h2>10. Experiment plan</h2>
+<p><strong>Hypothesis:</strong> Frequent office commuters will prefer setting up a recurring commute over manually booking each office trip.</p>
+<p><strong>Test:</strong> A (normal Uber booking) vs. B (Office Commute recurring setup)</p>
+<p><strong>Measure:</strong> setup completion, repeat usage, manual bookings avoided, changes/skips, cancellation/rebooking rate, user satisfaction.</p>
+<p><strong>Success criteria:</strong> left as configurable targets, set once baseline data exists.</p>
+<h2>11. Why this MVP solves the problem</h2>
+<p>Recurring setup removes the single biggest source of daily friction — re-entering the same trip every morning — by moving the user from <em>booking</em> to <em>managing exceptions</em>. Schedule management (change/skip) covers the two real-world failure modes of a fixed commute: hybrid work (some days there's no ride needed at all) and shifting office hours (a meeting moves, so the pickup time needs to move too). The MVP deliberately avoids solving for guaranteed reliability (Pro's concept features) until the core hypothesis — that people want to set this up at all — is validated.</p>
+<h2>12. Future improvements</h2>
+<ul>
+<li>Real-time driver availability signal before confirming a commute</li>
+<li>Smart reach-by-time using live traffic (Pro)</li>
+<li>Calendar integration to auto-adjust for meetings</li>
+<li>Shared/carpool office commute option</li>
+<li>Manager/team commute coordination for shared offices</li>
+</ul>
+<hr>
+<p><em>Companion interactive prototype: see published Uber Office Commute artifact.</em></p>
+
+</body></html>
