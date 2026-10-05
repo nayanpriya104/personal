@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Caregiving – Family Care Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2ee;--card:#fff;--ink:#1c2a29;--mute:#5a6b69;--line:#d3ddd9;--acc:#2f4a9e;--accT:#fff;--ok:#1d7a4d;--okB:#dff3e7;--warn:#9a6200;--warnB:#fdf0d0;--bad:#b3261e;--badB:#fbe3e1;--skip:#5a6b69;--skipB:#e6ebe9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a19;--card:#1b2625;--ink:#eaf1ef;--mute:#9db0ac;--line:#2f3e3c;--acc:#9bb0ff;--accT:#10172e;--ok:#6fd7a0;--okB:#173a29;--warn:#f2c46b;--warnB:#3d2e0d;--bad:#ff9a92;--badB:#44201d;--skip:#9db0ac;--skipB:#2a3634}}
+:root[data-theme="dark"]{--bg:#121a19;--card:#1b2625;--ink:#eaf1ef;--mute:#9db0ac;--line:#2f3e3c;--acc:#9bb0ff;--accT:#10172e;--ok:#6fd7a0;--okB:#173a29;--warn:#f2c46b;--warnB:#3d2e0d;--bad:#ff9a92;--badB:#44201d;--skip:#9db0ac;--skipB:#2a3634}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Atkinson Hyperlegible",system-ui,sans-serif}
+.app{max-width:560px;margin:0 auto;padding:16px 16px 96px}
+h1{font-size:26px;margin:4px 0 2px}h2{font-size:20px;margin:22px 0 8px}h3{font-size:18px;margin:0}
+.mute{color:var(--mute);font-size:16px}.row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.sum{background:var(--acc);color:var(--accT);border-radius:14px;padding:16px;margin:12px 0}
+.sum p{margin:6px 0 0}
+.q{display:grid;grid-template-columns:1fr 1fr;gap:10px}.q .card{margin:0}.q b{font-size:28px;display:block}
+button,select,input,textarea{font:inherit;color:var(--ink)}
+button{min-height:48px;border-radius:12px;border:2px solid var(--acc);background:transparent;color:var(--acc);padding:6px 16px;font-weight:700;cursor:pointer}
+button.p{background:var(--acc);color:var(--accT)}button.s{min-height:40px;padding:2px 12px;font-size:16px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.tag{display:inline-block;border-radius:99px;padding:2px 12px;font-size:15px;font-weight:700}
+.Taken,.Done,.Joined{background:var(--okB);color:var(--ok)}.Pending,.Open,.Invited{background:var(--warnB);color:var(--warn)}.Missed{background:var(--badB);color:var(--bad)}.Skipped{background:var(--skipB);color:var(--skip)}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav div{display:flex;max-width:560px;width:100%}nav button{flex:1;border:0;border-radius:0;min-height:60px;font-size:15px;color:var(--mute)}nav button[aria-current=true]{color:var(--acc);box-shadow:inset 0 3px var(--acc)}
+.dose{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}.dose:last-child{border:0}
+.t{font-weight:700;min-width:74px}
+label{display:block;font-weight:700;margin:12px 0 4px}input,select,textarea{width:100%;min-height:48px;padding:8px 10px;border:2px solid var(--line);border-radius:10px;background:var(--bg)}
+dialog{border:0;border-radius:16px;padding:18px;width:min(520px,94vw);background:var(--card);color:var(--ink)}dialog::backdrop{background:#0008}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;z-index:9;max-width:90vw}
+.notif{border:2px solid var(--acc);border-radius:14px;padding:14px;margin:10px 0;background:var(--card)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.safe{font-size:15px;color:var(--mute);border-left:4px solid var(--warn);padding-left:10px;margin:16px 0}
+.sw{display:flex;gap:10px;align-items:center}.sw input{width:26px;min-height:26px}
+</style></head><body><div class="app" id="app"></div><nav><div id="nav"></div></nav><dialog id="dlg"></dialog><div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),KEY="caregiving-mvp-v1";
+const uid=()=>Math.random().toString(36).slice(2,8);
+const iso=d=>d.toISOString().slice(0,10);
+const TODAY=()=>iso(new Date());
+const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
+const mins=t=>{const[a,b]=t.split(":");return+a*60+ +b};
+const fmt=t=>{let[h,m]=t.split(":").map(Number);const p=h>=12?"PM":"AM";h=h%12||12;return h+":"+String(m).padStart(2,"0")+" "+p};
+const fdate=d=>new Date(d+"T00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tm=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+function seed(){const a=uid(),b=uid(),c=uid();return{tab:"today",me:a,
+family:"The Sharma Family",recipient:{name:"Mom",age:74,allergies:"Penicillin"},
+members:[{id:a,name:"Nayan",role:"Primary Caregiver",status:"Joined"},{id:b,name:"Rahul",role:"Family Caregiver",status:"Joined"},{id:c,name:"Mom",role:"Care Recipient",status:"Joined"},{id:uid(),name:"Aunt Priya",role:"Viewer",status:"Invited"}],
+meds:[{id:uid(),name:"Metformin",dose:"500 mg",freq:"Twice daily",times:["08:00","20:00"],start:tm(-30),end:"",instr:"After food",doctor:"Dr. Mehta",notes:""},
+{id:uid(),name:"Amlodipine",dose:"5 mg",freq:"Once daily",times:["13:00"],start:tm(-60),end:"",instr:"With water",doctor:"Dr. Rao",notes:""}],
+doses:{},appts:[{id:uid(),doctor:"Cardiologist – Dr. Rao",date:tm(1),time:"11:00",loc:"City Heart Clinic",purpose:"Routine check-up",who:b,notes:"Bring last ECG report",done:false}],
+tasks:[{id:uid(),title:"Collect prescription",who:a,due:tm(0),status:"Open"},{id:uid(),title:"Order groceries",who:b,due:tm(1),status:"Open"}],
+updates:[{id:uid(),by:b,text:"Mom completed her blood test yesterday. Results due Friday.",at:Date.now()-864e5}],
+notes:[{id:uid(),cat:"Allergies",text:"Allergic to penicillin.",by:a},{id:uid(),cat:"Question for doctor",text:"Ask about the morning dizziness.",by:a}],
+prefs:{Medication:true,Appointment:true,Task:true,Family:true},grace:30,notifs:[],audit:[]}}
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!S||!S.members)S=seed();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const mem=id=>S.members.find(m=>m.id===id)||{name:"Unassigned",role:""};
+const me=()=>mem(S.me),role=()=>me().role;
+const can={manage:()=>role()==="Primary Caregiver",confirm:()=>["Primary Caregiver","Family Caregiver","Care Recipient"].includes(role()),
+task:t=>role()==="Primary Caregiver"||(role()==="Family Caregiver"&&t.who===S.me),post:()=>["Primary Caregiver","Family Caregiver"].includes(role())};
+function log(a){S.audit.unshift({at:Date.now(),by:me().name,a});S.audit=S.audit.slice(0,40)}
+function notify(cat,text){if(S.prefs[cat])S.notifs.unshift({cat,text,at:Date.now()});S.notifs=S.notifs.slice(0,30)}
+function toast(m){const t=$("#toast");t.innerHTML=`<div class="toast" role="status">${esc(m)}</div>`;setTimeout(()=>t.innerHTML="",2600)}
+/* medication doses */
+function dosesFor(date){const out=[];S.meds.forEach(m=>{if(m.start>date||(m.end&&m.end<date))return;m.times.forEach(t=>{const k=m.id+"@"+t+"@"+date;out.push({k,m,t,st:doseStatus(k,t,date)})})});return out.sort((a,b)=>a.t.localeCompare(b.t))}
+function doseStatus(k,t,date){const d=S.doses[k];if(d)return d.st;if(date<TODAY())return"Missed";if(date>TODAY())return"Pending";return nowMin()>mins(t)+2*S.grace?"Missed":"Pending"}
+function esc1(d){if(d.st!=="Pending"||d.k.split("@")[2]!==TODAY())return"";const over=nowMin()-mins(d.t);
+ if(over<0)return"";if(over<S.grace)return"Reminder sent to "+firstOf("Care Recipient");if(over<2*S.grace)return"Escalated: "+firstOf("Primary Caregiver")+" notified";return""}
+const firstOf=r=>(S.members.find(m=>m.role===r)||{name:"caregiver"}).name;
+function setDose(k,st){if(!can.confirm())return toast("Your role can't confirm medication.");const[mid,t]=k.split("@");const m=S.meds.find(x=>x.id===mid);
+ S.doses[k]={st,by:S.me,at:Date.now()};log(`${st} – ${m.name} ${fmt(t)}`);notify("Medication",`${me().name} marked ${m.name} (${fmt(t)}) as ${st.toLowerCase()}.`);save();render()}
+/* UI */
+const TABS=[["today","Today"],["meds","Medicines"],["appts","Visits"],["tasks","Tasks"],["family","Family"]];
+function head(t,sub){return`<div class="row"><div><h1>${t}</h1><div class="mute">${sub||""}</div></div></div>`}
+function whoBar(){return`<div class="card row"><label for="me" style="margin:0">Viewing as</label><select id="me" style="max-width:60%">${S.members.filter(m=>m.status==="Joined").map(m=>`<option value="${m.id}" ${m.id===S.me?"selected":""}>${esc(m.name)} (${m.role})</option>`).join("")}</select></div>`}
+function today(){const ds=dosesFor(TODAY()),c=s=>ds.filter(d=>d.st===s).length;
+ const ap=S.appts.filter(a=>!a.done&&a.date>=TODAY()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ const op=S.tasks.filter(t=>t.status==="Open"),mine=op.filter(t=>t.who===S.me).length,od=op.filter(t=>t.due<TODAY()).length+c("Missed");
+ const h=new Date().getHours(),g=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
+ const lu=S.updates[0];
+ const next=ap[0];const nm=S.recipient.name;
+ return head(`${g}, ${esc(me().name)}`,`${esc(nm)}'s care today`)+whoBar()+
+ `<div class="sum"><b>Daily summary</b><p>${esc(nm)} has ${ds.length} medication${ds.length==1?"":"s"} scheduled: ${c("Taken")} taken, ${c("Pending")} pending${c("Missed")?`, ${c("Missed")} missed`:""}. ${next?`Next appointment: ${esc(next.doctor)} on ${next.date===TODAY()?"today":next.date===tm(1)?"tomorrow":fdate(next.date)} at ${fmt(next.time)}.`:"No upcoming appointments."} ${op.length} task${op.length==1?"":"s"} pending.</p></div>`+
+ `<div class="q"><div class="card"><b>${ds.length-c("Taken")-c("Skipped")}</b>needs to happen today</div><div class="card"><b>${c("Taken")}</b>already done</div><div class="card"><b style="color:${od?"var(--bad)":"inherit"}">${od}</b>overdue or missed</div><div class="card"><b>${mine}</b>assigned to you</div></div>`+
+ `<h2>Medication</h2><div class="card">${doseList(ds)}</div>`+
+ `<h2>Appointments</h2>${next?apptCard(next):'<div class="card mute">No upcoming appointments.</div>'}`+
+ `<h2>Tasks</h2>${op.slice(0,3).map(taskCard).join("")||'<div class="card mute">All tasks done.</div>'}`+
+ `<h2>Family update</h2>${lu?updCard(lu):'<div class="card mute">No updates yet.</div>'}`+
+ `<h2>Notifications</h2>${S.notifs.slice(0,4).map(n=>`<div class="card"><span class="tag Open">${n.cat}</span> ${esc(n.text)}</div>`).join("")||'<div class="card mute">Nothing new.</div>'}`+
+ `<div class="safe">Caregiving organizes care information. It does not diagnose, change doses, or replace a doctor. In an emergency, call your local emergency number.</div>`}
+function doseList(ds){if(!ds.length)return'<div class="mute">No medicines scheduled today.</div>';
+ return ds.map(d=>{const e=esc1(d);return`<div class="dose"><span class="t">${fmt(d.t)}</span><div style="flex:1"><b>${esc(d.m.name)}</b> <span class="mute">${esc(d.m.dose)}</span>${e?`<div class="mute">${e}</div>`:""}</div>
+ <div style="text-align:right"><span class="tag ${d.st}">${d.st}</span>${d.st==="Pending"||d.st==="Missed"?`<div class="bar" style="justify-content:flex-end"><button class="s p" data-a="dose" data-k="${d.k}" data-v="Taken" ${can.confirm()?"":"disabled"}>Taken</button><button class="s" data-a="dose" data-k="${d.k}" data-v="Skipped" ${can.confirm()?"":"disabled"}>Skip</button></div>`:""}</div></div>`}).join("")}
+function meds(){const ds=dosesFor(TODAY());
+ return head("Medicines","Schedule and today's status")+whoBar()+`<div class="card">${doseList(ds)}</div>
+ <div class="bar"><button class="p" data-a="remind" ${S.meds.length?"":"disabled"}>Preview a reminder</button><button data-a="addMed" ${can.manage()?"":"disabled"}>Add medicine</button></div>${can.manage()?"":'<p class="mute">Only the Primary Caregiver can add or edit medicines.</p>'}
+ <div id="rem"></div><h2>All medicines</h2>`+S.meds.map(m=>`<div class="card"><div class="row"><h3>${esc(m.name)} ${esc(m.dose)}</h3>${can.manage()?`<button class="s" data-a="delMed" data-id="${m.id}">Remove</button>`:""}</div>
+ <div class="mute">${esc(m.freq)} at ${m.times.map(fmt).join(", ")}${m.instr?" · "+esc(m.instr):""}</div><div class="mute">From ${fdate(m.start)}${m.end?" to "+fdate(m.end):""}${m.doctor?" · Prescribed by "+esc(m.doctor):""}</div>${m.notes?`<div class="mute">Note: ${esc(m.notes)}</div>`:""}</div>`).join("")+
+ `<h2>Last 7 days</h2><div class="card">${week()}</div>`}
+function week(){let t=0,k=0,mi=0;for(let i=0;i<7;i++){dosesFor(tm(-i)).forEach(d=>{if(i===0&&d.st==="Pending")return;t++;if(d.st==="Taken")k++;if(d.st==="Missed")mi++})}
+ return t?`Confirmation rate <b>${Math.round(k/t*100)}%</b> · Missed rate <b>${Math.round(mi/t*100)}%</b> <span class="mute">(${t} scheduled doses)</span>`:"No data yet."}
+function apptCard(a){const d=a.date===TODAY()?"Today":a.date===tm(1)?"Tomorrow":fdate(a.date);return`<div class="card"><div class="row"><h3>${esc(a.doctor)}</h3><span class="tag ${a.done?"Done":"Open"}">${a.done?"Done":d}</span></div><div>${fdate(a.date)}, ${fmt(a.time)}${a.loc?" · "+esc(a.loc):""}</div>
+ <div class="mute">${esc(a.purpose)} · Assigned to ${esc(mem(a.who).name)}</div>${a.notes?`<div class="mute">Notes: ${esc(a.notes)}</div>`:""}
+ ${!a.done&&(can.manage()||(role()==="Family Caregiver"&&a.who===S.me))?`<div class="bar"><button class="s p" data-a="apptDone" data-id="${a.id}">Mark completed</button></div>`:""}</div>`}
+function appts(){return head("Appointments","Doctor visits and who is going")+whoBar()+`<div class="bar"><button class="p" data-a="addAppt" ${can.manage()?"":"disabled"}>Add appointment</button></div>`+
+ (S.appts.slice().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)).map(apptCard).join("")||'<div class="card mute">No appointments yet. Add the next doctor visit.</div>')}
+function taskCard(t){const od=t.status==="Open"&&t.due<TODAY();return`<div class="card"><div class="row"><div><h3>${esc(t.title)}</h3><div class="mute">${esc(mem(t.who).name)} · Due ${fdate(t.due)}${od?" · overdue":""}</div></div><span class="tag ${t.status}">${t.status}</span></div>
+ ${t.status==="Open"&&can.task(t)?`<div class="bar"><button class="s p" data-a="taskDone" data-id="${t.id}">Mark done</button></div>`:""}</div>`}
+function tasks(){return head("Care tasks","Who is responsible for what")+whoBar()+`<div class="bar"><button class="p" data-a="addTask" ${can.manage()?"":"disabled"}>Assign task</button></div>`+
+ (S.tasks.slice().sort((a,b)=>a.status.localeCompare(b.status)||a.due.localeCompare(b.due)).map(taskCard).join("")||'<div class="card mute">No tasks yet. Assign the first one.</div>')}
+function updCard(u){return`<div class="card"><div>${esc(u.text)}</div><div class="mute">${esc(mem(u.by).name)} · ${new Date(u.at).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></div>`}
+function family(){const joined=S.members.filter(m=>m.status==="Joined").length;
+ return head(esc(S.family),`Care recipient: ${esc(S.recipient.name)}, ${S.recipient.age}`)+whoBar()+
+ `<h2>Members <span class="mute">(${joined}/${S.members.length} active)</span></h2>`+S.members.map(m=>`<div class="card row"><div><h3>${esc(m.name)}</h3><div class="mute">${m.role}</div></div><div style="text-align:right"><span class="tag ${m.status}">${m.status}</span>${m.status==="Invited"&&can.manage()?`<div><button class="s" data-a="join" data-id="${m.id}">Simulate join</button></div>`:""}</div></div>`).join("")+
+ `<div class="bar"><button class="p" data-a="invite" ${can.manage()?"":"disabled"}>Invite caregiver</button></div>`+
+ `<h2>Family updates</h2>${can.post()?'<button data-a="addUpd">Post update</button>':'<div class="mute">Viewers and care recipients can read updates.</div>'}${S.updates.map(updCard).join("")}`+
+ `<h2>Shared notes</h2>${can.post()?'<button data-a="addNote">Add note</button>':""}${role()==="Viewer"?'<div class="card mute">Notes are visible to caregivers only.</div>':S.notes.map(n=>`<div class="card"><span class="tag Open">${esc(n.cat)}</span> ${esc(n.text)}</div>`).join("")}`+
+ `<h2>Notification settings</h2><div class="card">${Object.keys(S.prefs).map(k=>`<label class="sw"><input type="checkbox" data-a="pref" data-k="${k}" ${S.prefs[k]?"checked":""}> ${k} notifications</label>`).join("")}
+ <label for="gr">Escalate if medicine unconfirmed after (minutes)</label><input id="gr" type="number" min="5" max="240" value="${S.grace}" ${can.manage()?"":"disabled"}><div class="mute">Due → ${firstOf("Care Recipient")} reminded → ${firstOf("Primary Caregiver")} notified → supporting caregiver notified → marked missed.</div></div>`+
+ `<h2>Audit log</h2><div class="card">${S.audit.slice(0,8).map(a=>`<div class="mute">${new Date(a.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} · ${esc(a.by)}: ${esc(a.a)}</div>`).join("")||'<div class="mute">No changes yet.</div>'}</div>
+ <p><button data-a="reset">Reset demo data</button></p>`}
+function render(){const v={today,meds,appts,tasks,family}[S.tab]();$("#app").innerHTML=v;
+ $("#nav").innerHTML=TABS.map(([k,l])=>`<button data-a="tab" data-id="${k}" ${k===S.tab?'aria-current="true"':""}>${l}</button>`).join("");save()}
+/* forms */
+function form(title,fields,ok){const d=$("#dlg");d.innerHTML=`<form method="dialog" id="f"><h2 style="margin-top:0">${title}</h2>${fields.map(f=>{const id="f_"+f.k;const inp=f.opts?`<select id="${id}">${f.opts.map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</select>`:f.area?`<textarea id="${id}" rows="3" ${f.req?"required":""}></textarea>`:`<input id="${id}" type="${f.t||"text"}" value="${esc(f.v||"")}" placeholder="${esc(f.ph||"")}" ${f.req?"required":""}>`;return`<label for="${id}">${f.l}${f.req?" *":""}</label>${inp}`}).join("")}
+ <div class="bar" style="margin-top:16px"><button class="p" value="ok">Save</button><button type="button" id="cx">Cancel</button></div></form>`;
+ d.showModal();$("#cx").onclick=()=>d.close();$("#f").onsubmit=e=>{const o={};fields.forEach(f=>o[f.k]=$("#f_"+f.k).value.trim());if(ok(o)===false){e.preventDefault();return}d.close()}}
+const roleOpts=["Family Caregiver","Viewer","Care Recipient","Primary Caregiver"].map(r=>[r,r]),memOpts=()=>S.members.filter(m=>m.status==="Joined"&&m.role!=="Care Recipient").map(m=>[m.id,m.name]);
+const A={
+tab:e=>{S.tab=e.dataset.id;render();scrollTo(0,0)},
+dose:e=>setDose(e.dataset.k,e.dataset.v),
+addMed:()=>form("Add medicine",[{k:"name",l:"Medicine name",req:1,ph:"Metformin"},{k:"dose",l:"Dosage",req:1,ph:"500 mg"},{k:"freq",l:"Frequency",opts:[["Once daily","Once daily"],["Twice daily","Twice daily"],["Three times daily","Three times daily"],["As scheduled","Custom"]]},{k:"times",l:"Times (24h, comma separated)",req:1,v:"08:00,20:00"},{k:"start",l:"Start date",t:"date",v:TODAY(),req:1},{k:"end",l:"End date (optional)",t:"date"},{k:"instr",l:"Instructions",ph:"After food"},{k:"doctor",l:"Prescribing doctor"},{k:"notes",l:"Notes"}],o=>{const ts=o.times.split(",").map(x=>x.trim());if(!ts.every(x=>/^([01]?\d|2[0-3]):[0-5]\d$/.test(x))){toast("Enter times like 08:00,20:00");return false}
+ S.meds.push({id:uid(),name:o.name,dose:o.dose,freq:o.freq,times:ts.map(x=>x.padStart(5,"0")).sort(),start:o.start,end:o.end,instr:o.instr,doctor:o.doctor,notes:o.notes});log("Added medicine "+o.name);toast("Medicine added");render()}),
+delMed:e=>{if(!confirm("Remove this medicine from the schedule?"))return;S.meds=S.meds.filter(m=>m.id!==e.dataset.id);log("Removed a medicine");render()},
+remind:()=>{const d=dosesFor(TODAY()).find(x=>x.st==="Pending")||dosesFor(TODAY())[0];if(!d)return;$("#rem").innerHTML=`<div class="notif" role="alert"><b>${esc(S.recipient.name)}'s medication is due now</b><div>${esc(d.m.name)} ${esc(d.m.dose)}</div><div class="bar"><button class="p" data-a="dose" data-k="${d.k}" data-v="Taken">Taken</button><button data-a="snooze">Snooze 10 min</button></div></div>`},
+snooze:()=>{$("#rem").innerHTML="";toast("Snoozed for 10 minutes. Escalation timer keeps running.")},
+addAppt:()=>form("Add appointment",[{k:"doctor",l:"Doctor",req:1},{k:"date",l:"Date",t:"date",req:1,v:TODAY()},{k:"time",l:"Time",t:"time",req:1,v:"11:00"},{k:"loc",l:"Location"},{k:"purpose",l:"Purpose"},{k:"who",l:"Assigned caregiver",opts:memOpts()},{k:"notes",l:"Notes / documents to bring",area:1}],o=>{S.appts.push({id:uid(),doctor:o.doctor,date:o.date,time:o.time,loc:o.loc,purpose:o.purpose||"Visit",who:o.who,notes:o.notes,done:false});log("Added appointment "+o.doctor);notify("Appointment",`${mem(o.who).name} is assigned to ${o.doctor} on ${fdate(o.date)}.`);render()}),
+apptDone:e=>{S.appts.find(a=>a.id===e.dataset.id).done=true;log("Completed an appointment");render()},
+addTask:()=>form("Assign task",[{k:"title",l:"Task",req:1,ph:"Collect prescription"},{k:"who",l:"Assignee",opts:memOpts()},{k:"due",l:"Due date",t:"date",req:1,v:TODAY()}],o=>{S.tasks.push({id:uid(),title:o.title,who:o.who,due:o.due,status:"Open"});log("Assigned task "+o.title);notify("Task",`"${o.title}" assigned to ${mem(o.who).name}.`);render()}),
+taskDone:e=>{const t=S.tasks.find(x=>x.id===e.dataset.id);t.status="Done";log("Completed task "+t.title);render()},
+invite:()=>form("Invite caregiver",[{k:"name",l:"Name",req:1},{k:"role",l:"Role",opts:roleOpts}],o=>{const id=uid();S.members.push({id,name:o.name,role:o.role,status:"Invited"});log("Invited "+o.name);const link="https://caregiving.app/join/"+id;try{navigator.clipboard.writeText(link)}catch(e){}toast("Invite link copied: "+link);render()}),
+join:e=>{mem(e.dataset.id).status="Joined";log("Invite accepted");render()},
+addUpd:()=>form("Post family update",[{k:"text",l:"What happened?",area:1,req:1}],o=>{S.updates.unshift({id:uid(),by:S.me,text:o.text,at:Date.now()});log("Posted update");notify("Family","New family update posted.");render()}),
+addNote:()=>form("Add shared note",[{k:"cat",l:"Type",opts:["Doctor instructions","Medication instructions","Care preference","Allergies","Question for doctor"].map(x=>[x,x])},{k:"text",l:"Note",area:1,req:1}],o=>{S.notes.unshift({id:uid(),cat:o.cat,text:o.text,by:S.me});log("Added note");render()}),
+reset:()=>{if(confirm("Reset all demo data?")){S=seed();render()}}};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&A[b.dataset.a]&&b.tagName==="BUTTON")A[b.dataset.a](b)});
+document.addEventListener("change",e=>{const t=e.target;if(t.id==="me"){S.me=t.value;render()}else if(t.dataset.a==="pref"){S.prefs[t.dataset.k]=t.checked;save()}else if(t.id==="gr"){S.grace=Math.max(5,+t.value||30);log("Changed escalation window");render()}});
+render();setInterval(()=>{if(!$("#dlg").open&&["today","meds"].includes(S.tab)&&!$("#rem")?.innerHTML)render()},60000);
+</script></body></html>
