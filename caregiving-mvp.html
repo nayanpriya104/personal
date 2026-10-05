@@ -34,7 +34,7 @@ dialog{border:0;border-radius:16px;padding:18px;width:min(520px,94vw);background
 .sw{display:flex;gap:10px;align-items:center}.sw input{width:26px;min-height:26px}
 </style></head><body><div class="app" id="app"></div><nav><div id="nav"></div></nav><dialog id="dlg"></dialog><div id="toast"></div>
 <script>
-const $=s=>document.querySelector(s),KEY="caregiving-mvp-v1";
+const $=s=>document.querySelector(s),KEY="caregiving-mvp-v2";
 const uid=()=>Math.random().toString(36).slice(2,8);
 const iso=d=>d.toISOString().slice(0,10);
 const TODAY=()=>iso(new Date());
@@ -54,7 +54,7 @@ tasks:[{id:uid(),title:"Collect prescription",who:a,due:tm(0),status:"Open"},{id
 updates:[{id:uid(),by:b,text:"Mom completed her blood test yesterday. Results due Friday.",at:Date.now()-864e5}],
 notes:[{id:uid(),cat:"Allergies",text:"Allergic to penicillin.",by:a},{id:uid(),cat:"Question for doctor",text:"Ask about the morning dizziness.",by:a}],
 prefs:{Medication:true,Appointment:true,Task:true,Family:true},grace:30,notifs:[],audit:[]}}
-let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!S||!S.members)S=seed();
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}let FIRST=false;if(!S||!S.members){S=seed();FIRST=true}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const mem=id=>S.members.find(m=>m.id===id)||{name:"Unassigned",role:""};
 const me=()=>mem(S.me),role=()=>me().role;
@@ -147,5 +147,96 @@ addNote:()=>form("Add shared note",[{k:"cat",l:"Type",opts:["Doctor instructions
 reset:()=>{if(confirm("Reset all demo data?")){S=seed();render()}}};
 document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&A[b.dataset.a]&&b.tagName==="BUTTON")A[b.dataset.a](b)});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="me"){S.me=t.value;render()}else if(t.dataset.a==="pref"){S.prefs[t.dataset.k]=t.checked;save()}else if(t.id==="gr"){S.grace=Math.max(5,+t.value||30);log("Changed escalation window");render()}});
-render();setInterval(()=>{if(!$("#dlg").open&&["today","meds"].includes(S.tab)&&!$("#rem")?.innerHTML)render()},60000);
-</script></body></html>
+render();setInterval(()=>{if(!S.setup&&!$("#dlg").open&&["today","meds"].includes(S.tab)&&!$("#rem")?.innerHTML)render()},60000);
+</script><script>
+/* ===== v2: onboarding, dashboard, daily flow, NL entry, insights ===== */
+const MEDF=[{k:"name",l:"Medicine name",req:1,ph:"Metformin"},{k:"dose",l:"Dosage",req:1,ph:"500 mg"},{k:"freq",l:"Frequency",opts:[["Once daily","Once daily"],["Twice daily","Twice daily"],["Three times daily","Three times daily"],["As scheduled","Custom"]]},{k:"times",l:"Reminder times (24h, comma separated)",req:1,v:"08:00,20:00"},{k:"start",l:"Start date",t:"date",v:TODAY(),req:1},{k:"end",l:"End date (optional)",t:"date"},{k:"instr",l:"Instructions",ph:"After food"},{k:"doctor",l:"Prescribing doctor"},{k:"notes",l:"Notes"}];
+function saveMed(o){const ts=o.times.split(",").map(x=>x.trim());if(!ts.every(x=>/^([01]?\d|2[0-3]):[0-5]\d$/.test(x))){toast("Enter times like 08:00,20:00");return false}
+ S.meds.push({id:uid(),name:o.name,dose:o.dose,freq:o.freq,times:ts.map(x=>x.padStart(5,"0")).sort(),start:o.start||TODAY(),end:o.end,instr:o.instr,doctor:o.doctor,notes:o.notes});log("Added medicine "+o.name);if(!S.setup){toast("Medicine added");render()}}
+function blank(){return{tab:"today",me:"",family:"",recipient:{name:"",age:"",allergies:""},members:[],meds:[],doses:{},appts:[],tasks:[],updates:[],notes:[],prefs:{Medication:true,Appointment:true,Task:true,Family:true},grace:30,notifs:[],audit:[],activity:[],snooze:{},setup:{step:0}}}
+function demo(){const s=seed();s.activity=[];s.snooze={};const T=TODAY(),n=nowMin();
+ for(let i=1;i<=14;i++)s.meds.forEach(m=>m.times.forEach(t=>{s.doses[m.id+"@"+t+"@"+tm(-i)]={st:t==="20:00"&&i%4===2?"Missed":"Taken",by:s.me,at:0}}));
+ s.meds.forEach(m=>m.times.forEach(t=>{if(mins(t)<n-2*s.grace)s.doses[m.id+"@"+t+"@"+T]={st:"Taken",by:s.me,at:Date.now()}}));
+ s.updates.unshift({id:uid(),by:s.members[1].id,text:"Mom's appointment completed yesterday.",at:Date.now()-864e5});return s}
+/* ---- first-time setup (9 steps) ---- */
+const FS=w=>typeof w.f==="function"?w.f():w.f;
+const WF={
+1:{h:"Create account",f:[{k:"name",l:"Your name",req:1},{k:"email",l:"Email",t:"email",req:1}],ok:o=>{const id=uid();S.members.push({id,name:o.name,role:"Primary Caregiver",status:"Joined",email:o.email});S.me=id;log("Account created")}},
+2:{h:"Create your family",f:[{k:"fam",l:"Family name",req:1,ph:"The Sharma Family"}],ok:o=>{S.family=o.fam}},
+3:{h:"Add the care recipient",f:[{k:"name",l:"Name",req:1,ph:"Mom"},{k:"age",l:"Age",t:"number"},{k:"all",l:"Allergies (optional)"}],ok:o=>{S.recipient={name:o.name,age:+o.age||"",allergies:o.all};S.members.push({id:uid(),name:o.name,role:"Care Recipient",status:"Joined"});if(o.all)S.notes.push({id:uid(),cat:"Allergies",text:o.all,by:S.me})}},
+4:{h:"Invite family members",opt:1,more:"Invite another",f:[{k:"name",l:"Name"},{k:"role",l:"Role",opts:roleOpts}],ok:o=>{if(o.name){S.members.push({id:uid(),name:o.name,role:o.role,status:"Invited"});toast("Invite link ready: caregiving.app/join/"+uid())}}},
+5:{h:"Add a medicine",opt:1,more:"Add another",f:MEDF,ok:o=>o.name?saveMed(o):0},
+6:{h:"Set reminders",f:()=>[{k:"grace",l:"If a medicine is not confirmed, notify another caregiver after",opts:[["15","15 minutes"],["30","30 minutes"],["45","45 minutes"],["60","60 minutes"]],v:String(S.grace)},{k:"pm",l:"Medication reminders",chk:1,v:1},{k:"pa",l:"Appointment reminders",chk:1,v:1},{k:"pt",l:"Task reminders",chk:1,v:1},{k:"pf",l:"Family update alerts",chk:1,v:1}],
+ pre:()=>S.meds.length?`<div class="card mute">Reminders will be sent at: ${S.meds.map(m=>esc(m.name)+" "+m.times.map(fmt).join(", ")).join(" · ")}</div>`:'<div class="card mute">No medicines yet. You can add them later from the Medicines tab.</div>',
+ ok:o=>{S.grace=+o.grace;S.prefs={Medication:o.pm,Appointment:o.pa,Task:o.pt,Family:o.pf}}},
+7:{h:"Add an appointment",opt:1,more:"Add another",f:()=>[{k:"doctor",l:"Doctor",ph:"Cardiologist – Dr. Rao"},{k:"date",l:"Date",t:"date",v:TODAY()},{k:"time",l:"Time",t:"time",v:"11:00"},{k:"loc",l:"Location"},{k:"purpose",l:"Purpose"},{k:"who",l:"Assigned caregiver",opts:memOpts()}],ok:o=>{if(o.doctor)S.appts.push({id:uid(),doctor:o.doctor,date:o.date,time:o.time,loc:o.loc,purpose:o.purpose||"Visit",who:o.who,notes:"",done:false})}},
+8:{h:"Assign a task",opt:1,more:"Assign another",f:()=>[{k:"title",l:"Task",ph:"Collect prescription"},{k:"who",l:"Assignee",opts:memOpts()},{k:"due",l:"Due date",t:"date",v:TODAY()}],ok:o=>{if(o.title)S.tasks.push({id:uid(),title:o.title,who:o.who,due:o.due,status:"Open"})}}};
+const fh=fs=>fs.map(f=>{const id="w_"+f.k;if(f.chk)return`<label class="sw"><input type="checkbox" id="${id}" ${f.v?"checked":""}> ${f.l}</label>`;
+ const i=f.opts?`<select id="${id}">${f.opts.map(o=>`<option value="${o[0]}" ${o[0]==f.v?"selected":""}>${esc(o[1])}</option>`).join("")}</select>`:`<input id="${id}" type="${f.t||"text"}" value="${esc(f.v||"")}" placeholder="${esc(f.ph||"")}" ${f.req?"required":""}>`;
+ return`<label for="${id}">${f.l}${f.req?" *":""}</label>${i}`}).join("");
+const gv=f=>{const e=$("#w_"+f.k);return f.chk?e.checked:e.value.trim()};
+function wiz(){const n=S.setup.step;
+ if(n===0)return`<h1>Welcome to Caregiving</h1><p>One shared place for medicines, appointments, tasks and family updates. Setup takes about 10 minutes: account, family, care recipient, invites, medicine, reminders, appointment, task.</p><div class="bar"><button class="p" data-a="start">Create account</button><button data-a="loadDemo">Explore with demo data</button></div><div class="safe">Caregiving organizes care information. It does not diagnose, change doses, or replace a doctor.</div>`;
+ const w=WF[n];return`<div class="mute">Step ${n} of 8</div><div style="height:8px;background:var(--line);border-radius:9px;margin:6px 0 10px"><div style="height:8px;width:${n/8*100}%;background:var(--acc);border-radius:9px"></div></div>
+ <form id="wz"><h1>${w.h}</h1>${w.pre?w.pre():""}${fh(FS(w))}<div class="bar" style="margin-top:16px"><button class="p" value="next">${n===8?"Finish and open dashboard":"Continue"}</button>${w.more?`<button value="more">${w.more}</button>`:""}${w.opt?'<button type="button" data-a="skip">Skip for now</button>':""}</div></form>`}
+function nextStep(){if(S.setup.step>=8){S.setup=null;S.tab="today";log("Setup complete");toast("All set. This is your care dashboard.")}else S.setup.step++;render();scrollTo(0,0)}
+document.addEventListener("submit",e=>{if(e.target.id!=="wz")return;e.preventDefault();const w=WF[S.setup.step],o={};FS(w).forEach(f=>o[f.k]=gv(f));if(w.ok(o)===false)return;
+ if(e.submitter&&e.submitter.value==="more"){toast("Saved");render();return}nextStep()});
+Object.assign(A,{start:()=>{S.setup.step=1;render()},loadDemo:()=>{S=demo();render()},skip:()=>nextStep(),
+ addMed:()=>form("Add medicine",MEDF,saveMed),
+ snooze:e=>{if(e.dataset.k){S.snooze[e.dataset.k]=Date.now()+6e5;toast("Snoozed for 10 minutes");render()}else{$("#rem").innerHTML="";toast("Snoozed for 10 minutes")}},
+ reset:()=>{if(confirm("Delete all data and restart setup?")){S=blank();render()}},
+ nl:()=>{const v=$("#nl").value.trim();if(!v)return toast("Type a medicine first");const p=parseNL(v);if(!p.name)return toast("Could not find a medicine name");
+  form("Draft from your text: check every field, then save",MEDF,saveMed);for(const k in p)$("#f_"+k).value=p[k]}});
+/* ---- FR-14 natural-language entry (local parser, draft only) ---- */
+function parseNL(s){const t=s.replace(/^\s*add\s+/i,"");const dm=t.match(/(\d+(?:\.\d+)?)\s?(mg|mcg|g|ml|iu|units?)\b/i);
+ let name=(dm?t.slice(0,dm.index):t.split(/\s+(once|twice|daily|three|every|at)\b/i)[0]).trim();name=name.charAt(0).toUpperCase()+name.slice(1);
+ let ts=[...t.matchAll(/\b(\d{1,2})(?::(\d{2}))?\s?(am|pm)\b/gi)].map(m=>{let h=+m[1]%12;if(/pm/i.test(m[3]))h+=12;return String(h).padStart(2,"0")+":"+(m[2]||"00")});
+ let f=/three times|thrice|3 times/i.test(t)?"Three times daily":/twice|two times|2 times/i.test(t)?"Twice daily":/once|daily|every (morning|day)/i.test(t)?"Once daily":ts.length==3?"Three times daily":ts.length==2?"Twice daily":"Once daily";
+ if(!ts.length)ts={"Once daily":["08:00"],"Twice daily":["08:00","20:00"],"Three times daily":["08:00","14:00","20:00"]}[f];
+ const im=t.match(/(after|before|with) (food|meals?|water|breakfast|dinner)|at bedtime|on an empty stomach/i);
+ return{name,dose:dm?dm[1]+" "+dm[2].toLowerCase():"",freq:f,times:ts.join(","),instr:im?im[0]:""}}
+/* ---- FR-15 pattern insights (local, rule-based) ---- */
+function insights(){const out=[],sl={},p=[[0,0],[0,0]];
+ for(let i=1;i<=14;i++)dosesFor(tm(-i)).forEach(d=>{const k=d.m.name+" at "+fmt(d.t),s=sl[k]||(sl[k]={n:0,m:0});s.n++;if(d.st==="Missed")s.m++;const q=p[i<=7?0:1];q[0]++;if(d.st==="Taken")q[1]++});
+ if(!p[0][0]&&!p[1][0])return["Not enough history yet. Insights appear after a few days of use."];
+ const w=Object.entries(sl).sort((a,b)=>b[1].m-a[1].m)[0];
+ if(w&&w[1].m>=2)out.push(`${w[0]} was missed ${w[1].m} of ${w[1].n} days. Consider an earlier reminder or asking a family member to check in then.`);
+ const r=q=>q[0]?Math.round(q[1]/q[0]*100):null,a=r(p[0]),b=r(p[1]);
+ if(a!==null)out.push(`Confirmation rate this week: ${a}%${b!==null?` (${a>=b?"up":"down"} from ${b}% the week before)`:""}.`);
+ const od={};S.tasks.filter(t=>t.status==="Open"&&t.due<TODAY()).forEach(t=>od[mem(t.who).name]=(od[mem(t.who).name]||0)+1);
+ for(const k in od)out.push(`${k} has ${od[k]} overdue task${od[k]>1?"s":""}. Consider reassigning or sending a reminder.`);
+ S.appts.filter(x=>!x.done&&x.date>=TODAY()&&!x.notes).forEach(x=>out.push(`Add notes or documents to bring for ${x.doctor.split(" – ")[0]} on ${fdate(x.date)}.`));
+ return out}
+const _meds=meds;meds=()=>_meds().replace('<div id="rem"></div>','<div id="rem"></div><div class="card"><label for="nl" style="margin-top:0">Add by typing</label><input id="nl" placeholder="Add Metformin 500 mg twice daily at 8 AM and 8 PM"><div class="bar"><button class="s p" data-a="nl" '+(can.manage()?"":"disabled")+'>Create draft</button></div><div class="mute">You review and confirm every detail before it is saved.</div></div><h2>Care insights</h2><div class="card">'+insights().map(x=>"<p style='margin:6px 0'>"+esc(x)+"</p>").join("")+'<div class="mute">Based on your recorded data. Not medical advice.</div></div>');
+const _fam=family;family=()=>_fam().replace("Reset demo data","Delete data and restart setup");
+/* ---- dashboard + daily flow ---- */
+function banner(){const t=Date.now(),d=dosesFor(TODAY()).find(x=>x.st==="Pending"&&nowMin()>=mins(x.t)&&!(S.snooze[x.k]>t));
+ return d?`<div class="notif" role="alert"><b>${esc(S.recipient.name)}'s medication is due now</b><div>${esc(d.m.name)} ${esc(d.m.dose)} · due ${fmt(d.t)}</div><div class="bar"><button class="p" data-a="dose" data-k="${d.k}" data-v="Taken" ${can.confirm()?"":"disabled"}>Taken</button><button data-a="snooze" data-k="${d.k}">Snooze</button></div></div>`:""}
+function setDose(k,st){if(!can.confirm())return toast("Your role can't confirm medication.");const[mid,t]=k.split("@"),m=S.meds.find(x=>x.id===mid);
+ S.doses[k]={st,by:S.me,at:Date.now()};log(`${st}: ${m.name} ${fmt(t)}`);notify("Medication",`${me().name} marked ${m.name} (${fmt(t)}) as ${st.toLowerCase()}.`);
+ S.activity.unshift({at:Date.now(),text:`${me().name} marked ${m.name} (${fmt(t)}) as ${st.toLowerCase()}`});S.activity=S.activity.slice(0,10);render();toast("Dashboard updated. Family status updated.")}
+function today(){const ds=dosesFor(TODAY()),c=s=>ds.filter(d=>d.st===s).length,nm=S.recipient.name,T=TODAY();
+ const next=S.appts.filter(a=>!a.done&&a.date>=T).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time))[0];
+ const op=S.tasks.filter(t=>t.status==="Open"),mine=op.filter(t=>t.who===S.me).length,h=new Date().getHours();
+ const g=h<12?"Good Morning":h<17?"Good Afternoon":"Good Evening",w=d=>d===T?"today":d===tm(1)?"tomorrow":"on "+fdate(d),lu=S.updates.find(u=>!u.sys);
+ const rc=firstOf("Care Recipient"),R=(x,who,tag,cls)=>`<div class="dose"><div><b>${x}</b><div class="mute">Responsible: ${esc(who)}</div></div><span class="tag ${cls}">${tag}</span></div>`;
+ const A1=[],A2=[],A3=[];
+ ds.forEach(d=>{const x=`${fmt(d.t)} · ${esc(d.m.name)} ${esc(d.m.dose)}`;if(d.st==="Pending")A1.push(R(x,rc,"Pending","Pending"));else if(d.st==="Missed")A3.push(R(x,rc+", monitored by "+firstOf("Primary Caregiver"),"Missed","Missed"));else A2.push(R(x,rc,d.st,d.st))});
+ S.appts.forEach(a=>{const x=`${fmt(a.time)} · ${esc(a.doctor)}`,n=mem(a.who).name;if(a.done&&a.date>=tm(-1))A2.push(R(x,n,"Done","Done"));else if(!a.done&&a.date===T)A1.push(R(x,n,"Today","Open"));else if(!a.done&&a.date<T)A3.push(R(x,n,"Overdue","Missed"))});
+ S.tasks.forEach(t=>{const x=esc(t.title),n=mem(t.who).name;if(t.status==="Done")A2.push(R(x,n,"Done","Done"));else if(t.due<T)A3.push(R(x,n,"Overdue","Missed"));else if(t.due===T)A1.push(R(x,n,"Due today","Open"))});
+ const sec=(t,a,e)=>`<h2>${t}</h2><div class="card">${a.join("")||`<div class="mute">${e}</div>`}</div>`;
+ return`<div class="sum"><h1 style="margin:0">${g}, ${esc(me().name)} ☀️</h1><div>${esc(nm)}'s Care Today</div>
+ <p>💊 <b>MEDICATION</b> — ${ds.length} scheduled, ${c("Taken")} completed, ${c("Pending")} pending${c("Missed")?`, ${c("Missed")} missed`:""}</p>
+ <p>📅 <b>APPOINTMENTS</b> — ${next?`${esc(next.doctor.split(" – ")[0])}, ${w(next.date)} at ${fmt(next.time)}`:"None scheduled"}</p>
+ <p>✅ <b>TASKS</b> — ${op.length} pending, ${mine} assigned to you</p>
+ <p>💬 <b>FAMILY UPDATE</b> — ${lu?esc(lu.text):"No updates yet"}</p></div>`+whoBar()+banner()+
+ sec("What needs to happen today",A1,"Nothing left to do today.")+sec("What has already happened",A2,"Nothing completed yet.")+sec("What is overdue",A3,"Nothing is overdue.")+
+ `<h2>Family status</h2><div class="card">${S.activity.slice(0,4).map(a=>`<div class="mute">${new Date(a.at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} · ${esc(a.text)}</div>`).join("")||'<div class="mute">Updates appear here when someone confirms a medicine.</div>'}</div>`+
+ `<h2>Daily summary</h2><div class="card">Good ${h<12?"morning":h<17?"afternoon":"evening"}. ${esc(nm)} has ${ds.length} medication${ds.length==1?"":"s"} scheduled, ${c("Taken")} completed, ${c("Pending")} pending, ${S.appts.filter(a=>!a.done&&a.date===tm(1)).length} appointment tomorrow and ${op.length} pending task${op.length==1?"":"s"}.</div>`+
+ `<h2>Notifications</h2>${S.notifs.slice(0,3).map(n=>`<div class="card"><span class="tag Open">${n.cat}</span> ${esc(n.text)}</div>`).join("")||'<div class="card mute">Nothing new.</div>'}<div class="safe">Caregiving organizes care information. It does not diagnose, change doses, or replace a doctor. In an emergency, call your local emergency number.</div>`}
+function render(){document.querySelector("nav").hidden=!!S.setup;if(S.setup){$("#app").innerHTML=wiz();save();return}
+ $("#app").innerHTML=({today,meds,appts,tasks,family})[S.tab]();$("#nav").innerHTML=TABS.map(([k,l])=>`<button data-a="tab" data-id="${k}" ${k===S.tab?'aria-current="true"':""}>${l}</button>`).join("");save()}
+if(FIRST)S=blank();S.activity=S.activity||[];S.snooze=S.snooze||{};if(!S.setup)S.tab="today";render();
+</script>
+</body></html>
